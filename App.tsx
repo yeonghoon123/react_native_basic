@@ -92,6 +92,7 @@ function App(): JSX.Element {
     const readFile: any = await RNFS.readFile(snapshot.path, 'base64'); // 파일경로에 이미지 base64로 변경
     let encodeBuffer = Buffer.from(readFile, 'base64'); // base64에서 buffer 데이터로 encode
 
+    // state 값 변경
     setSnapShotData({
       name: 'test',
       data: encodeBuffer,
@@ -115,12 +116,15 @@ function App(): JSX.Element {
       (err: any) => {
         if (err) {
           console.log(err);
+
+          // 에러시 알림참
           Alert.alert('Error', err, [
             {text: 'OK', onPress: () => console.log('OK Pressed')},
           ]);
           return;
         }
 
+        // 완료시 알림참
         Alert.alert('Success', '이미지 업로드 완료', [
           {
             text: 'OK',
@@ -133,22 +137,23 @@ function App(): JSX.Element {
     );
   };
 
-  const downloadFileS3 = () => {
-    const url = process.env;
-    const filePath = RNFS.DownloadDirectoryPath + `/${Date.now()}_test.pdf`;
+  // S3 업로드된 파일 다운로드
+  const downloadFileS3 = async () => {
+    const filePath = RNFS.DownloadDirectoryPath + `/${Date.now()}_test.pdf`; // 다운로드시 모바일 기기에 저장될 위치
 
-    console.log(url, filePath);
-    RNFS.downloadFile({
-      fromUrl: AWS_S3_DOCUMENT_URL,
-      toFile: filePath,
-      // progress: res => {
-      //   // const progress = (res.bytesWritten / res.contentLength) * 100;
-      //   // console.log(`Progress: ${progress.toFixed(2)}%`);
-      // },
-    })
-      .promise.then(response => {
-        console.log('File downloaded!', response);
-        // Handle download progress updates if needed
+    try {
+      // 다운로드 시작
+      const downloadResult = await RNFS.downloadFile({
+        fromUrl: AWS_S3_DOCUMENT_URL,
+        toFile: filePath,
+        // progress: res => {
+        //   // const progress = (res.bytesWritten / res.contentLength) * 100;
+        //   // console.log(`Progress: ${progress.toFixed(2)}%`);
+        // },
+      }).promise;
+
+      // 완료시 알림참
+      downloadResult &&
         Alert.alert('Success', '다운로드 완료', [
           {
             text: 'OK',
@@ -157,23 +162,14 @@ function App(): JSX.Element {
             },
           },
         ]);
-      })
-      .catch(err => {
-        console.log('Download error:', err);
-      });
+    } catch (err) {
+      console.log(err);
+    }
   };
 
+  // 첫 랜더시 권한확인
   useEffect(() => {
     checkPermission();
-    // Optional: Delete the file if it exists before downloading
-    const filePath = RNFS.DocumentDirectoryPath + '/example.pdf';
-    RNFS.unlink(filePath)
-      .then(() => {
-        console.log('Previous file deleted');
-      })
-      .catch(err => {
-        console.log(err.message);
-      });
   }, []);
 
   if (device == null) return <Text>Null device</Text>;
@@ -225,7 +221,6 @@ function App(): JSX.Element {
               isActive={activeCamera}
             />
             <View style={styles.snapShotContainer}>
-              <View></View>
               <View style={styles.snapShotBtnContainer}>
                 <Button title="shot" onPress={() => onSnapShot()} />
               </View>
@@ -237,6 +232,7 @@ function App(): JSX.Element {
   );
 }
 
+// app 스타일
 const styles = StyleSheet.create({
   container: {
     flex: 1,
