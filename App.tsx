@@ -4,7 +4,7 @@
  *
  * @format
  */
-import * as RNFS from 'react-native-fs';
+import RNFS from 'react-native-fs';
 import React, {useEffect, useRef, useState} from 'react';
 import {
   Alert,
@@ -18,16 +18,16 @@ import {
 } from 'react-native';
 import {useCameraDevices, Camera} from 'react-native-vision-camera';
 import AWS from './config/aws';
-import {AWS_S3_BUCKET} from '@env';
+import {AWS_S3_BUCKET, AWS_S3_DOCUMENT_URL} from '@env';
 
 function App(): JSX.Element {
-  const [activeCamera, setActiveCamera] = useState(false);
-  const [snapShotPath, setSnapShotPath] = useState<any>(null);
-  const [snapShotData, setSnapShotData] = useState<any>(null);
-  const camera = useRef<Camera>(null);
+  const [activeCamera, setActiveCamera] = useState(false); // 카메라 전환 스위치
+  const [snapShotPath, setSnapShotPath] = useState<any>(null); // 촬영한 이미지 경로
+  const [snapShotData, setSnapShotData] = useState<any>(null); // 촬영한 이미지 데이터
+  const camera = useRef<Camera>(null); // 카메로 모듈 사용
 
-  const devices = useCameraDevices('wide-angle-camera');
-  const device = devices.back;
+  const devices = useCameraDevices('wide-angle-camera'); // 사용자 기기 카메라 설정
+  const device = devices.back; // 사용자 기기 후방 카메라 사용
 
   // 카메라 권한 체크
   const checkPermission = async () => {
@@ -107,7 +107,7 @@ function App(): JSX.Element {
     // S3 버킷에 이미지 업로드
     client_S3.putObject(
       {
-        Bucket: AWS_S3_BUCKET,
+        Bucket: `${AWS_S3_BUCKET}/react_native_image`,
         Key: Date.now() + '_' + snapShotData.name + '.jpg',
         Body: snapShotData.data,
         ContentType: 'image/jpeg',
@@ -133,59 +133,106 @@ function App(): JSX.Element {
     );
   };
 
+  const downloadFileS3 = () => {
+    const url = process.env;
+    const filePath = RNFS.DownloadDirectoryPath + `/${Date.now()}_test.pdf`;
+
+    console.log(url, filePath);
+    RNFS.downloadFile({
+      fromUrl: AWS_S3_DOCUMENT_URL,
+      toFile: filePath,
+      // progress: res => {
+      //   // const progress = (res.bytesWritten / res.contentLength) * 100;
+      //   // console.log(`Progress: ${progress.toFixed(2)}%`);
+      // },
+    })
+      .promise.then(response => {
+        console.log('File downloaded!', response);
+        // Handle download progress updates if needed
+        Alert.alert('Success', '다운로드 완료', [
+          {
+            text: 'OK',
+            onPress: () => {
+              setSnapShotPath(null), setSnapShotData(null);
+            },
+          },
+        ]);
+      })
+      .catch(err => {
+        console.log('Download error:', err);
+      });
+  };
+
   useEffect(() => {
     checkPermission();
+    // Optional: Delete the file if it exists before downloading
+    const filePath = RNFS.DocumentDirectoryPath + '/example.pdf';
+    RNFS.unlink(filePath)
+      .then(() => {
+        console.log('Previous file deleted');
+      })
+      .catch(err => {
+        console.log(err.message);
+      });
   }, []);
 
   if (device == null) return <Text>Null device</Text>;
   return (
     <>
-      {!activeCamera ? (
-        <View style={styles.container}>
-          <View style={{justifyContent: 'center', alignItems: 'center'}}>
-            {snapShotPath !== null && (
-              <>
-                <Image
-                  style={{
-                    width: 300,
-                    height: 500,
-                    borderWidth: 1,
-                    borderColor: 'red',
-
-                    marginBottom: 10,
-                  }}
-                  source={{uri: snapShotPath}}
-                />
-              </>
-            )}
-          </View>
-
+      <View style={styles.container}>
+        {!activeCamera && (
           <View style={{marginBottom: 15}}>
-            {snapShotPath !== null && (
-              <Button title="upload" onPress={() => uploadS3()} />
-            )}
+            <Button title="menual download" onPress={() => downloadFileS3()} />
           </View>
-          <View>
-            <Button title="snapshot" onPress={() => onPressBtn()} />
-          </View>
-        </View>
-      ) : (
-        <>
-          <Camera
-            style={StyleSheet.absoluteFill}
-            device={device}
-            photo={true}
-            ref={camera}
-            isActive={activeCamera}
-          />
-          <View style={styles.snapShotContainer}>
-            <View></View>
-            <View style={styles.snapShotBtnContainer}>
-              <Button title="shot" onPress={() => onSnapShot()} />
+        )}
+
+        {!activeCamera ? (
+          <>
+            <View style={{justifyContent: 'center', alignItems: 'center'}}>
+              {snapShotPath !== null && (
+                <>
+                  <Image
+                    style={{
+                      width: 300,
+                      height: 500,
+                      borderWidth: 1,
+                      borderColor: 'red',
+
+                      marginBottom: 10,
+                    }}
+                    source={{uri: snapShotPath}}
+                  />
+                </>
+              )}
             </View>
-          </View>
-        </>
-      )}
+
+            <View style={{marginBottom: 15}}>
+              {snapShotPath !== null && (
+                <Button title="upload" onPress={() => uploadS3()} />
+              )}
+            </View>
+            <View>
+              <Button title="snapshot" onPress={() => onPressBtn()} />
+            </View>
+          </>
+        ) : (
+          <>
+            <Camera
+              style={StyleSheet.absoluteFill}
+              device={device}
+              photo={true}
+              ref={camera}
+              isActive={activeCamera}
+            />
+            <View style={styles.snapShotContainer}>
+              <View></View>
+              <View style={styles.snapShotBtnContainer}>
+                <Button title="shot" onPress={() => onSnapShot()} />
+              </View>
+            </View>
+          </>
+        )}
+      </View>
     </>
   );
 }
