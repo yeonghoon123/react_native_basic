@@ -1,9 +1,3 @@
-/**
- * Sample React Native App
- * https://github.com/facebook/react-native
- *
- * @format
- */
 import RNFS from 'react-native-fs';
 import React, {useEffect, useRef, useState} from 'react';
 import {
@@ -29,7 +23,7 @@ function App(): JSX.Element {
   const devices = useCameraDevices('wide-angle-camera'); // 사용자 기기 카메라 설정
   const device = devices.back; // 사용자 기기 후방 카메라 사용
 
-  // 카메라 권한 체크
+  // RN1. 카메라 권한 체크
   const checkPermission = async () => {
     // 카메라 권한 상태
     const cameraPermission = await Camera.getCameraPermissionStatus();
@@ -72,13 +66,13 @@ function App(): JSX.Element {
     }
   };
 
-  // 카메라 촬영으로 변경
+  // RN10. 카메라 촬영으로 변경
   const onPressBtn = async () => {
     checkPermission();
     setActiveCamera(true);
   };
 
-  // 카메라 촬영후 사진 데이터 저장 및 경로 저장
+  // RN20. 카메라 촬영후 사진 데이터 저장 및 경로 저장
   const onSnapShot = async () => {
     if (camera.current == null) throw new Error('Camera Ref is Null');
 
@@ -101,7 +95,7 @@ function App(): JSX.Element {
     setActiveCamera(false);
   };
 
-  // S3 업로드
+  // RN30. S3 업로드
   const uploadS3 = async () => {
     const client_S3 = new AWS.S3(); // S3 사용
 
@@ -137,7 +131,7 @@ function App(): JSX.Element {
     );
   };
 
-  // S3 업로드된 파일 다운로드
+  // RN40. S3 업로드된 파일 다운로드
   const downloadFileS3 = async () => {
     const filePath = RNFS.DownloadDirectoryPath + `/${Date.now()}_test.pdf`; // 다운로드시 모바일 기기에 저장될 위치
 
@@ -146,10 +140,6 @@ function App(): JSX.Element {
       const downloadResult = await RNFS.downloadFile({
         fromUrl: AWS_S3_DOCUMENT_URL,
         toFile: filePath,
-        // progress: res => {
-        //   // const progress = (res.bytesWritten / res.contentLength) * 100;
-        //   // console.log(`Progress: ${progress.toFixed(2)}%`);
-        // },
       }).promise;
 
       // 완료시 알림참
@@ -173,6 +163,7 @@ function App(): JSX.Element {
   }, []);
 
   if (device == null) return <Text>Null device</Text>;
+  // RN50. 사용자에게 보여질 tsx 코드
   return (
     <>
       <View style={styles.container}>
@@ -232,7 +223,7 @@ function App(): JSX.Element {
   );
 }
 
-// app 스타일
+// RN60. app 스타일
 const styles = StyleSheet.create({
   container: {
     flex: 1,
